@@ -1,19 +1,18 @@
-import { Search, Building2, Users, Menu } from 'lucide-react';
+import { Search, Building2, Menu } from 'lucide-react';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 import { Button } from '@/app/components/ui/button';
-import type { User, UserRole } from '@/app/data/mock-data';
+import type { User } from '@/app/data/mock-data';
 
 interface TopNavbarProps {
   currentUser: User;
-  onRoleToggle: (role: UserRole) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onMenuClick?: () => void;
 }
 
-export function TopNavbar({ currentUser, onRoleToggle, searchQuery, onSearchChange, onMenuClick }: TopNavbarProps) {
+export function TopNavbar({ currentUser, searchQuery, onSearchChange, onMenuClick }: TopNavbarProps) {
   return (
     <div className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="flex h-14 md:h-[72px] items-center gap-2 md:gap-4 px-3 md:px-6">
@@ -53,7 +52,7 @@ export function TopNavbar({ currentUser, onRoleToggle, searchQuery, onSearchChan
 
           {/* Role Badge - hidden on small mobile */}
           <Badge 
-            variant={currentUser.role === 'Manager' ? 'default' : 'secondary'} 
+            variant="secondary"
             className="hidden sm:flex px-3 py-1"
           >
             {currentUser.role}
@@ -65,17 +64,10 @@ export function TopNavbar({ currentUser, onRoleToggle, searchQuery, onSearchChan
                 {currentUser.avatar}
               </AvatarFallback>
             </Avatar>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => onRoleToggle(currentUser.role === 'Manager' ? 'Staff' : 'Manager')} 
-              title="Switch Role"
-              className="gap-1 md:gap-2 text-xs md:text-sm p-2 md:px-3"
-            >
-              <Users className="size-3 md:size-4" />
-              <span className="hidden md:inline">Switch to {currentUser.role === 'Manager' ? 'Staff' : 'Manager'}</span>
-              <span className="md:hidden">Switch</span>
-            </Button>
+            <div className="hidden md:flex flex-col">
+              <span className="text-sm font-medium">{currentUser.name}</span>
+              <span className="text-xs text-muted-foreground">{currentUser.email}</span>
+            </div>
           </div>
         </div>
       </div>
