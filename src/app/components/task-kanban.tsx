@@ -9,6 +9,8 @@ interface TaskKanbanProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
+  isMobileListView?: boolean;
+  onAddTask?: () => void;
 }
 
 export function TaskKanban({
@@ -18,6 +20,8 @@ export function TaskKanban({
   onEditTask,
   onDeleteTask,
   onStatusChange,
+  isMobileListView = false,
+  onAddTask,
 }: TaskKanbanProps) {
   const columns: { status: TaskStatus; label: string; color: string }[] = [
     { status: 'Pending', label: 'Pending', color: 'border-gray-300 bg-gray-50' },
@@ -32,6 +36,56 @@ export function TaskKanban({
     }, {} as Record<TaskStatus, Task[]>);
   }, [tasks]);
 
+  // Mobile list view - just show filtered tasks without columns
+  if (isMobileListView) {
+    return (
+      <div className="space-y-3">
+        {tasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            users={users}
+            currentUserRole={currentUserRole}
+            onEdit={onEditTask}
+            onDelete={onDeleteTask}
+            onStatusChange={onStatusChange}
+          />
+        ))}
+        {tasks.length === 0 && (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            No tasks
+          </div>
+        )}
+        
+        {/* Add New Task Button */}
+        {onAddTask && (
+          <button
+            onClick={onAddTask}
+            className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white hover:bg-gray-50 hover:border-blue-400 transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+            <span className="font-medium">Add New Task</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop kanban view with columns
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 h-full">
       {columns.map((column) => (

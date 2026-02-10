@@ -22,7 +22,6 @@ interface SidebarProps {
 
 export function Sidebar({ currentFilter, onFilterChange, userRole, taskCounts, isMobileOpen, onMobileClose }: SidebarProps) {
   const menuItems = [
-    { id: 'all' as FilterType, label: 'All Tasks', icon: LayoutGrid, count: taskCounts.all },
     { id: 'my-tasks' as FilterType, label: 'My Tasks', icon: ListTodo, count: taskCounts.myTasks },
     { id: 'Pending' as FilterType, label: 'Pending', icon: Clock, count: taskCounts.pending },
     { id: 'In Progress' as FilterType, label: 'In Progress', icon: PlayCircle, count: taskCounts.inProgress },
@@ -48,15 +47,16 @@ export function Sidebar({ currentFilter, onFilterChange, userRole, taskCounts, i
 
       {/* Sidebar */}
       <div className={cn(
-        'w-60 border-r bg-white z-50 transition-transform duration-300',
+        'w-60 border-r z-50 transition-transform duration-300',
         'md:sticky md:top-14 md:h-[calc(100vh-3.5rem)]',
         'lg:top-[72px] lg:h-[calc(100vh-72px)]',
         'fixed top-14 bottom-0 left-0',
         isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      )}>
-        {/* Mobile close button */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b">
-          <span className="font-semibold">Menu</span>
+      )}
+      style={{ backgroundColor: '#f5f7fa' }}
+      >
+        {/* Mobile close button header */}
+        <div className="flex items-center justify-end px-4 py-3 border-b bg-white/50 md:hidden">
           <Button variant="ghost" size="sm" onClick={onMobileClose}>
             <X className="size-4" />
           </Button>

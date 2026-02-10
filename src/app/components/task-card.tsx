@@ -58,10 +58,7 @@ export function TaskCard({ task, users, currentUserRole, onEdit, onDelete, onSta
       isCompleted && "opacity-75 bg-neutral-50"
     )}>
       <div className="flex items-start justify-between gap-2 mb-2 md:mb-3">
-        <h3 className={cn(
-          "font-medium text-sm flex-1 line-clamp-2",
-          isCompleted && "line-through text-muted-foreground"
-        )}>
+        <h3 className="font-medium text-sm flex-1 line-clamp-2">
           {task.title}
         </h3>
         <DropdownMenu>

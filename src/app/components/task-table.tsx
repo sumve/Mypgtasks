@@ -95,7 +95,7 @@ export function TaskTable({
                 <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")}>
                   <TableCell className="font-medium">
                     <div>
-                      <div className={cn(isCompleted && "line-through text-muted-foreground")}>
+                      <div>
                         {task.title}
                       </div>
                       {task.propertyId && (
@@ -107,10 +107,30 @@ export function TaskTable({
                   </TableCell>
                   <TableCell className="text-sm">{getUserName(task.assignedTo)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={cn('text-xs flex items-center gap-1 w-fit whitespace-nowrap', statusColors[task.status])}>
-                      <StatusIcon className="size-3" />
-                      <span className="hidden sm:inline">{task.status}</span>
-                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="w-fit">
+                          <Badge variant="outline" className={cn('text-xs flex items-center gap-1 w-fit whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity', statusColors[task.status])}>
+                            <StatusIcon className="size-3" />
+                            <span className="hidden sm:inline">{task.status}</span>
+                          </Badge>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'Pending')}>
+                          <Circle className="size-3 mr-2" />
+                          Pending
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'In Progress')}>
+                          <Play className="size-3 mr-2" />
+                          In Progress
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'Completed')}>
+                          <CheckCircle2 className="size-3 mr-2" />
+                          Completed
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn('text-xs', priorityColors[task.priority])}>
@@ -126,36 +146,7 @@ export function TaskTable({
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{getUserName(task.createdBy)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 md:gap-2">
-                      {/* Status Action Buttons */}
-                      {task.status === 'Pending' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleStartTask(task.id)}
-                          className="text-xs"
-                        >
-                          <Play className="size-3 md:mr-1" />
-                          <span className="hidden md:inline">Start</span>
-                        </Button>
-                      )}
-                      {task.status === 'In Progress' && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-xs"
-                          onClick={() => handleCompleteTask(task.id)}
-                        >
-                          <CheckCircle2 className="size-3 md:mr-1" />
-                          <span className="hidden sm:inline">Complete</span>
-                        </Button>
-                      )}
-                      {isCompleted && (
-                        <div className="flex items-center gap-1 text-green-700 text-sm px-2">
-                          <CheckCircle2 className="size-4" />
-                        </div>
-                      )}
-                      
+                    <div className="flex items-center justify-end">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -164,19 +155,6 @@ export function TaskTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => onEditTask(task)}>Edit</DropdownMenuItem>
-                          {currentUserRole === 'Manager' && (
-                            <>
-                              <DropdownMenuItem onClick={() => onEditTask(task)}>
-                                Reassign
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => onDeleteTask(task.id)}
-                                className="text-red-600"
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
