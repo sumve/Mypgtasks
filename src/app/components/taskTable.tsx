@@ -76,7 +76,7 @@ export function TaskTable({
             <TableHead className="min-w-[90px]">Priority</TableHead>
             <TableHead className="min-w-[100px]">Due Date</TableHead>
             <TableHead className="min-w-[120px] hidden md:table-cell">Created By</TableHead>
-            <TableHead className="text-right min-w-[140px]">Actions</TableHead>
+            <TableHead className="text-center w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,10 +89,11 @@ export function TaskTable({
           ) : (
             tasks.map((task) => {
               const isCompleted = task.status === 'Completed';
+              const isInProgress = task.status === 'In Progress';
               const StatusIcon = statusIcons[task.status];
               
               return (
-                <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")}>
+                <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")} onClick={() => onEditTask(task)} style={{ cursor: 'pointer' }}>
                   <TableCell className="font-medium">
                     <div>
                       <div>
@@ -108,7 +109,7 @@ export function TaskTable({
                   <TableCell className="text-sm">{getUserName(task.assignedTo)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <button className="w-fit">
                           <Badge variant="outline" className={cn('text-xs flex items-center gap-1 w-fit whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity', statusColors[task.status])}>
                             <StatusIcon className="size-3" />
@@ -117,15 +118,15 @@ export function TaskTable({
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
-                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'Pending')}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, 'Pending'); }}>
                           <Circle className="size-3 mr-2" />
                           Pending
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'In Progress')}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, 'In Progress'); }}>
                           <Play className="size-3 mr-2" />
                           In Progress
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onStatusChange(task.id, 'Completed')}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, 'Completed'); }}>
                           <CheckCircle2 className="size-3 mr-2" />
                           Completed
                         </DropdownMenuItem>
@@ -145,18 +146,15 @@ export function TaskTable({
                     })}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{getUserName(task.createdBy)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEditTask(task)}>Edit</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="size-5 text-green-600" />
+                      ) : isInProgress ? (
+                        <Play className="size-5 text-blue-600" />
+                      ) : (
+                        <Circle className="size-5 text-gray-400" />
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TaskCard } from '@/app/components/task-card';
+import { TaskCard } from '@/app/components/taskCard';
 import type { Task, User, UserRole, TaskStatus } from '@/app/data/mock-data';
 
 interface TaskKanbanProps {
