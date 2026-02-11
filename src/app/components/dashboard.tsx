@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { TopNavbar } from '@/app/components/topNavbar';
+import { TopNavbar } from '@/app/components/common/topNavbar';
 import { Sidebar } from '@/app/components/sidebar';
 import { TaskKanban } from '@/app/components/taskKanban';
 import { TaskTable } from '@/app/components/taskTable';
 import { TaskModal } from '@/app/components/taskModal';
-import { ProfileModal } from '@/app/components/profileModal';
+import { ProfileModal } from '@/app/components/common/profileModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { Checkbox } from '@/app/components/ui/checkbox';

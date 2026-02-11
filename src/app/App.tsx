@@ -1,5 +1,5 @@
 import { Dashboard } from '@/app/components/dashboard';
-import { users, initialTasks } from '@/app/data/mock-data';
+import { users, initialTasks } from '@/app/data/mockData';
 
 export default function App() {
   // Use a staff user by default (Rahul Kumar)
