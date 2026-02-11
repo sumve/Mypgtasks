@@ -3,6 +3,13 @@ import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 import { Button } from '@/app/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/app/components/ui/dropdown-menu';
 import type { User } from '@/app/data/mock-data';
 import logo from "/logo.png";
 
@@ -24,8 +31,8 @@ export function TopNavbar({ currentUser, searchQuery, onSearchChange, onMenuClic
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
-          {/* Search - hidden on mobile, shown on tablet+ */}
-          <div className="relative hidden sm:block w-40 md:w-80">
+          {/* Search - only visible on mobile/tablet, hidden on desktop (lg+) */}
+          <div className="relative hidden sm:block lg:hidden w-40 md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
             <Input
               type="search"
@@ -44,19 +51,30 @@ export function TopNavbar({ currentUser, searchQuery, onSearchChange, onMenuClic
             {currentUser.role}
           </Badge>
 
-          <button 
-            onClick={onProfileClick}
-            className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity"
-          >
-            <Avatar className="size-8 md:size-10">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-xs md:text-sm">
-                {currentUser.avatar}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden md:flex flex-col">
-              <span className="text-sm font-medium text-white">{currentUser.name}</span>
-            </div>
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                <Menu className="size-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {/* User Details - clickable to open profile modal */}
+              <div 
+                className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={onProfileClick}
+              >
+                <Avatar className="size-10">
+                  <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                    {currentUser.avatar}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-medium truncate">{currentUser.name}</span>
+                  <span className="text-xs text-muted-foreground truncate">{currentUser.email}</span>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
