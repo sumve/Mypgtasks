@@ -1,7 +1,8 @@
-import { LayoutGrid, CheckCircle2, Clock, PlayCircle, ListTodo, X } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, Clock, PlayCircle, ListTodo, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import { Button } from '@/app/components/ui/button';
 import type { UserRole, TaskStatus } from '@/app/data/mock-data';
+import { useState } from 'react';
 
 type FilterType = 'all' | 'my-tasks' | TaskStatus;
 
@@ -21,8 +22,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ currentFilter, onFilterChange, userRole, taskCounts, isMobileOpen, onMobileClose }: SidebarProps) {
-  const menuItems = [
-    { id: 'my-tasks' as FilterType, label: 'My Tasks', icon: ListTodo, count: taskCounts.myTasks },
+  const [isMyTasksExpanded, setIsMyTasksExpanded] = useState(true);
+
+  const subMenuItems = [
     { id: 'Pending' as FilterType, label: 'Pending', icon: Clock, count: taskCounts.pending },
     { id: 'In Progress' as FilterType, label: 'In Progress', icon: PlayCircle, count: taskCounts.inProgress },
     { id: 'Completed' as FilterType, label: 'Completed', icon: CheckCircle2, count: taskCounts.completed },
@@ -63,38 +65,75 @@ export function Sidebar({ currentFilter, onFilterChange, userRole, taskCounts, i
         </div>
 
         <nav className="p-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentFilter === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleFilterChange(item.id)}
-                className={cn(
-                  'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="size-4" />
-                  <span>{item.label}</span>
-                </div>
-                {item.count > 0 && (
-                  <span
-                    className={cn(
-                      'px-2 py-0.5 rounded-full text-xs',
-                      isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-700'
-                    )}
-                  >
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {/* My Tasks - Parent Item */}
+          <div>
+            <button
+              onClick={() => {
+                setIsMyTasksExpanded(!isMyTasksExpanded);
+                handleFilterChange('my-tasks');
+              }}
+              className={cn(
+                'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                currentFilter === 'my-tasks'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                {isMyTasksExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                <ListTodo className="size-4" />
+                <span>My Tasks</span>
+              </div>
+              {taskCounts.myTasks > 0 && (
+                <span
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-xs',
+                    currentFilter === 'my-tasks' ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-700'
+                  )}
+                >
+                  {taskCounts.myTasks}
+                </span>
+              )}
+            </button>
+
+            {/* Sub-menu Items */}
+            {isMyTasksExpanded && (
+              <div className="ml-4 mt-1 space-y-1">
+                {subMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentFilter === item.id;
+                  
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleFilterChange(item.id)}
+                      className={cn(
+                        'w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.count > 0 && (
+                        <span
+                          className={cn(
+                            'px-2 py-0.5 rounded-full text-xs',
+                            isActive ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-700'
+                          )}
+                        >
+                          {item.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
       </div>
     </>

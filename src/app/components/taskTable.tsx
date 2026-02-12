@@ -22,8 +22,6 @@ interface TaskTableProps {
   tasks: Task[];
   users: User[];
   currentUserRole: UserRole;
-  onEditTask: (task: Task) => void;
-  onDeleteTask: (taskId: string) => void;
   onStatusChange: (taskId: string, status: Task['status']) => void;
 }
 
@@ -49,8 +47,6 @@ export function TaskTable({
   tasks,
   users,
   currentUserRole,
-  onEditTask,
-  onDeleteTask,
   onStatusChange,
 }: TaskTableProps) {
   const getUserName = (userId: string) => {
@@ -65,35 +61,40 @@ export function TaskTable({
     onStatusChange(taskId, 'Completed');
   };
 
+  // Sort tasks by status: Pending first, then In Progress, then Completed
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const statusOrder = { 'Pending': 1, 'In Progress': 2, 'Completed': 3 };
+    return statusOrder[a.status] - statusOrder[b.status];
+  });
+
   return (
     <div className="border rounded-lg bg-white overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="min-w-[200px]">Task Name</TableHead>
+            <TableHead className="min-w-[120px]">Requested By</TableHead>
             <TableHead className="min-w-[120px]">Assigned To</TableHead>
-            <TableHead className="min-w-[110px]">Status</TableHead>
             <TableHead className="min-w-[90px]">Priority</TableHead>
             <TableHead className="min-w-[100px]">Due Date</TableHead>
-            <TableHead className="min-w-[120px] hidden md:table-cell">Created By</TableHead>
-            <TableHead className="text-center w-[80px]"></TableHead>
+            <TableHead className="min-w-[110px]">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tasks.length === 0 ? (
+          {sortedTasks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                 No tasks found
               </TableCell>
             </TableRow>
           ) : (
-            tasks.map((task) => {
+            sortedTasks.map((task) => {
               const isCompleted = task.status === 'Completed';
               const isInProgress = task.status === 'In Progress';
               const StatusIcon = statusIcons[task.status];
               
               return (
-                <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")} onClick={() => onEditTask(task)} style={{ cursor: 'pointer' }}>
+                <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")}>
                   <TableCell className="font-medium">
                     <div>
                       <div>
@@ -106,7 +107,20 @@ export function TaskTable({
                       )}
                     </div>
                   </TableCell>
+                  <TableCell className="text-sm">{getUserName(task.createdBy)}</TableCell>
                   <TableCell className="text-sm">{getUserName(task.assignedTo)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn('text-xs', priorityColors[task.priority])}>
+                      {task.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {new Date(task.dueDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -132,30 +146,6 @@ export function TaskTable({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn('text-xs', priorityColors[task.priority])}>
-                      {task.priority}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(task.dueDate).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm">{getUserName(task.createdBy)}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="size-5 text-green-600" />
-                      ) : isInProgress ? (
-                        <Play className="size-5 text-blue-600" />
-                      ) : (
-                        <Circle className="size-5 text-gray-400" />
-                      )}
-                    </div>
                   </TableCell>
                 </TableRow>
               );

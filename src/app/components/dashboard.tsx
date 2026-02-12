@@ -1,15 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
-import { TopNavbar } from '@/app/components/common/topNavbar';
+import { TopNavbar } from '@/app/components/topNavbar';
 import { Sidebar } from '@/app/components/sidebar';
 import { TaskKanban } from '@/app/components/taskKanban';
 import { TaskTable } from '@/app/components/taskTable';
-import { TaskModal } from '@/app/components/taskModal';
-import { ProfileModal } from '@/app/components/common/profileModal';
+import { ProfileModal } from '@/app/components/profileModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Input } from '@/app/components/ui/input';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import type { Task, User, TaskStatus, Priority } from '@/app/data/mock-data';
 
 type FilterType = 'all' | 'my-tasks' | TaskStatus;
@@ -24,8 +23,6 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentFilter, setCurrentFilter] = useState<FilterType>('my-tasks');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   
   // Mobile status filters - multi-select (applied filters)
@@ -48,7 +45,9 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
   // Profile modal state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Update view mode when screen size changes
+  // Checkbox flash state for visual feedback
+  const [showCheckboxFlash, setShowCheckboxFlash] = useState(false);
+
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth >= 1024);
@@ -137,6 +136,17 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
       );
     }
 
+    // Sort by status order in mobile view: Pending → In Progress → Completed
+    if (!isDesktop) {
+      const statusOrder: Record<TaskStatus, number> = {
+        'Pending': 1,
+        'In Progress': 2,
+        'Completed': 3,
+      };
+      
+      filtered.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+    }
+
     return filtered;
   }, [tasks, currentUser, currentFilter, searchQuery, isDesktop, mobileStatusFilters, mobilePriorityFilters, mobileDueDateFilter, desktopPriorityFilter, desktopDueDateFilter]);
 
@@ -152,49 +162,10 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
     };
   }, [tasks, currentUser]);
 
-  const handleSaveTask = (taskData: Partial<Task>) => {
-    if (editingTask) {
-      // Update existing task
-      setTasks((prev) =>
-        prev.map((t) => (t.id === editingTask.id ? { ...t, ...taskData } : t))
-      );
-    } else {
-      // Create new task
-      const newTask: Task = {
-        id: String(Date.now()),
-        title: taskData.title || '',
-        description: taskData.description || '',
-        assignedTo: taskData.assignedTo || '',
-        priority: taskData.priority || 'Medium',
-        status: taskData.status || 'Pending',
-        dueDate: taskData.dueDate || '',
-        createdBy: taskData.createdBy || currentUser.id,
-        propertyId: taskData.propertyId,
-        createdAt: taskData.createdAt || new Date().toISOString().split('T')[0],
-      };
-      setTasks((prev) => [newTask, ...prev]);
-    }
-    setEditingTask(undefined);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-  };
-
   const handleStatusChange = (taskId: string, status: TaskStatus) => {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status } : t))
     );
-  };
-
-  const handleAddTask = () => {
-    setEditingTask(undefined);
-    setIsModalOpen(true);
   };
 
   const handleStatusFilterToggle = (status: TaskStatus) => {
@@ -218,10 +189,21 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
   };
 
   const applyMobileFilters = () => {
-    setMobileStatusFilters(tempStatusFilters);
-    setMobilePriorityFilters(tempPriorityFilters);
-    setMobileDueDateFilter(tempDueDateFilter);
-    setIsFilterOpen(false);
+    // Show visual feedback
+    setShowCheckboxFlash(true);
+    
+    // Apply filters after a brief moment
+    setTimeout(() => {
+      setMobileStatusFilters(tempStatusFilters);
+      setMobilePriorityFilters(tempPriorityFilters);
+      setMobileDueDateFilter(tempDueDateFilter);
+      setIsFilterOpen(false);
+      
+      // Reset flash after popover closes
+      setTimeout(() => {
+        setShowCheckboxFlash(false);
+      }, 300);
+    }, 200);
   };
 
   const cancelMobileFilters = () => {
@@ -588,8 +570,6 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
               tasks={filteredTasks}
               users={users}
               currentUserRole={currentUser.role}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
               onStatusChange={handleStatusChange}
               isMobileListView={true}
             />
@@ -601,26 +581,11 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
               tasks={filteredTasks}
               users={users}
               currentUserRole={currentUser.role}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
               onStatusChange={handleStatusChange}
             />
           )}
         </main>
       </div>
-
-      <TaskModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingTask(undefined);
-        }}
-        onSave={handleSaveTask}
-        task={editingTask}
-        users={users}
-        currentUserId={currentUser.id}
-        isStaffView={currentUser.role === 'Staff'}
-      />
 
       <ProfileModal
         isOpen={isProfileOpen}
