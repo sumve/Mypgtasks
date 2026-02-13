@@ -30,10 +30,6 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
   const [mobilePriorityFilters, setMobilePriorityFilters] = useState<Priority[]>([]);
   const [mobileDueDateFilter, setMobileDueDateFilter] = useState<string>(''); // 'overdue', 'today', 'week', ''
   
-  // Desktop filters
-  const [desktopPriorityFilter, setDesktopPriorityFilter] = useState<Priority | 'all'>('all');
-  const [desktopDueDateFilter, setDesktopDueDateFilter] = useState<string>('all'); // 'overdue', 'today', 'week', 'all'
-  
   // Temporary filter state (for popover)
   const [tempStatusFilters, setTempStatusFilters] = useState<TaskStatus[]>([]);
   const [tempPriorityFilters, setTempPriorityFilters] = useState<Priority[]>([]);
@@ -98,57 +94,61 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
       });
     }
 
-    // Desktop priority filter
-    if (isDesktop && desktopPriorityFilter !== 'all') {
-      filtered = filtered.filter((task) => task.priority === desktopPriorityFilter);
-    }
-
-    // Desktop due date filter
-    if (isDesktop && desktopDueDateFilter !== 'all') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
+    // Universal search filter - searches across all fields
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter((task) => {
-        const taskDate = new Date(task.dueDate);
-        taskDate.setHours(0, 0, 0, 0);
+        // Get user names for assigned to and created by
+        const assignedToUser = users.find(u => u.id === task.assignedTo);
+        const createdByUser = users.find(u => u.id === task.createdBy);
         
-        if (desktopDueDateFilter === 'overdue') {
-          return taskDate < today && task.status !== 'Completed';
-        } else if (desktopDueDateFilter === 'today') {
-          return taskDate.getTime() === today.getTime();
-        } else if (desktopDueDateFilter === 'week') {
-          const weekFromNow = new Date(today);
-          weekFromNow.setDate(today.getDate() + 7);
-          return taskDate >= today && taskDate <= weekFromNow;
-        }
-        return true;
+        // Format date for search
+        const formattedDate = new Date(task.dueDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+        
+        return (
+          task.title.toLowerCase().includes(query) ||
+          task.description.toLowerCase().includes(query) ||
+          task.propertyId?.toLowerCase().includes(query) ||
+          task.priority.toLowerCase().includes(query) ||
+          task.status.toLowerCase().includes(query) ||
+          assignedToUser?.name.toLowerCase().includes(query) ||
+          createdByUser?.name.toLowerCase().includes(query) ||
+          formattedDate.toLowerCase().includes(query) ||
+          task.dueDate.includes(query)
+        );
       });
     }
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (task) =>
-          task.title.toLowerCase().includes(query) ||
-          task.description.toLowerCase().includes(query) ||
-          task.propertyId?.toLowerCase().includes(query)
-      );
-    }
-
-    // Sort by status order in mobile view: Pending → In Progress → Completed
-    if (!isDesktop) {
-      const statusOrder: Record<TaskStatus, number> = {
-        'Pending': 1,
-        'In Progress': 2,
-        'Completed': 3,
-      };
+    // Sort by status order: Pending → In Progress → Completed
+    // Within each status, sort by priority: Critical → High → Medium → Low
+    const statusOrder: Record<TaskStatus, number> = {
+      'Pending': 1,
+      'In Progress': 2,
+      'Completed': 3,
+    };
+    
+    const priorityOrder: Record<Priority, number> = {
+      'Critical': 1,
+      'High': 2,
+      'Medium': 3,
+      'Low': 4,
+    };
+    
+    filtered.sort((a, b) => {
+      // First sort by status
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
       
-      filtered.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
-    }
+      // Then sort by priority within the same status
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
 
     return filtered;
-  }, [tasks, currentUser, currentFilter, searchQuery, isDesktop, mobileStatusFilters, mobilePriorityFilters, mobileDueDateFilter, desktopPriorityFilter, desktopDueDateFilter]);
+  }, [tasks, currentUser, currentFilter, searchQuery, isDesktop, mobileStatusFilters, mobilePriorityFilters, mobileDueDateFilter, users]);
 
   const taskCounts = useMemo(() => {
     const userTasks = tasks.filter((t) => t.assignedTo === currentUser.id);
@@ -256,10 +256,10 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
         )}
 
         <main className="flex-1 p-3 md:p-6">
-          {/* Mobile Header with Filter - only visible on mobile */}
+          {/* Mobile Header with Search - only visible on mobile */}
           {!isDesktop && (
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                   <h1 className="text-xl font-semibold mb-1">My Tasks</h1>
                   <p className="text-sm text-muted-foreground">
@@ -267,231 +267,34 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
                   </p>
                 </div>
                 
-                {/* Filter Popover */}
-                <Popover open={isFilterOpen} onOpenChange={handleFilterOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      >
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                      </svg>
-                      <span>Filter</span>
-                      {(mobileStatusFilters.length > 0 || mobilePriorityFilters.length > 0 || mobileDueDateFilter) && (
-                        <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                          {mobileStatusFilters.length + mobilePriorityFilters.length + (mobileDueDateFilter ? 1 : 0)}
-                        </span>
-                      )}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56" align="end">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-semibold text-sm mb-3 pb-2 border-b text-gray-900 uppercase tracking-wide">Task Status</h3>
-                        <div className="space-y-2">                     
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempStatusFilters.includes('Pending')}
-                              onCheckedChange={() => handleStatusFilterToggle('Pending')}
-                            />
-                            <span className="text-sm">Pending ({taskCounts.pending})</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempStatusFilters.includes('In Progress')}
-                              onCheckedChange={() => handleStatusFilterToggle('In Progress')}
-                            />
-                            <span className="text-sm">In Progress ({taskCounts.inProgress})</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempStatusFilters.includes('Completed')}
-                              onCheckedChange={() => handleStatusFilterToggle('Completed')}
-                            />
-                            <span className="text-sm">Completed ({taskCounts.completed})</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm mb-3 pb-2 border-b text-gray-900 uppercase tracking-wide">Priority</h3>
-                        <div className="space-y-2">                     
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempPriorityFilters.includes('Low')}
-                              onCheckedChange={() => handlePriorityFilterToggle('Low')}
-                            />
-                            <span className="text-sm">Low</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempPriorityFilters.includes('Medium')}
-                              onCheckedChange={() => handlePriorityFilterToggle('Medium')}
-                            />
-                            <span className="text-sm">Medium</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempPriorityFilters.includes('High')}
-                              onCheckedChange={() => handlePriorityFilterToggle('High')}
-                            />
-                            <span className="text-sm">High</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-sm mb-3 pb-2 border-b text-gray-900 uppercase tracking-wide">Due Date</h3>
-                        <div className="space-y-2">                     
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempDueDateFilter === 'overdue'}
-                              onCheckedChange={() => setTempDueDateFilter(tempDueDateFilter === 'overdue' ? '' : 'overdue')}
-                            />
-                            <span className="text-sm">Overdue</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempDueDateFilter === 'today'}
-                              onCheckedChange={() => setTempDueDateFilter(tempDueDateFilter === 'today' ? '' : 'today')}
-                            />
-                            <span className="text-sm">Today</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={tempDueDateFilter === 'week'}
-                              onCheckedChange={() => setTempDueDateFilter(tempDueDateFilter === 'week' ? '' : 'week')}
-                            />
-                            <span className="text-sm">Next 7 Days</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t">
-                        <button
-                          className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors"
-                          onClick={cancelMobileFilters}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
-                          onClick={applyMobileFilters}
-                        >
-                          Apply Filters
-                        </button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              {/* Active Filter Chips */}
-              {mobileStatusFilters.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {mobileStatusFilters.map((status) => (
-                    <div
-                      key={status}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700"
-                    >
-                      <span>{status}</span>
-                      <button
-                        onClick={() => removeStatusFilter(status)}
-                        className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
-                        aria-label={`Remove ${status} filter`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {mobilePriorityFilters.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {mobilePriorityFilters.map((priority) => (
-                    <div
-                      key={priority}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700"
-                    >
-                      <span>{priority}</span>
-                      <button
-                        onClick={() => removePriorityFilter(priority)}
-                        className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
-                        aria-label={`Remove ${priority} filter`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {mobileDueDateFilter && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <div
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700"
-                  >
-                    <span>{mobileDueDateFilter === 'overdue' ? 'Overdue' : mobileDueDateFilter === 'today' ? 'Today' : 'Next 7 Days'}</span>
+                {/* Mobile Universal Search Bar */}
+                <div className="relative flex-shrink-0 w-48">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-gray-400" />
+                  <Input
+                    type="search"
+                    placeholder="Search..."
+                    className="pl-8 pr-8 h-9 text-sm rounded-full border-gray-300 bg-white"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
                     <button
-                      onClick={removeDueDateFilter}
-                      className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
-                      aria-label={`Remove ${mobileDueDateFilter} filter`}
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="Clear search"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
+                      <X className="size-3.5 text-gray-500" />
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
           {/* Desktop heading */}
           {isDesktop && (
             <div className="mb-4 md:mb-6">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+              <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <h1 className="text-xl md:text-2xl font-semibold mb-1">
                     {currentFilter === 'all' && 'My Tasks'}
@@ -505,55 +308,24 @@ export function Dashboard({ currentUser, users, initialTasks }: DashboardProps) 
                   </p>
                 </div>
                 
-                {/* Search and Filters */}
-                <div className="flex items-center gap-3">
-                  {/* Search Input */}
-                  <div className="relative w-64">
+                {/* Universal Search Bar */}
+                <div className="bg-white rounded-lg shadow-md p-4 flex items-center gap-3">
+                  <div className="relative w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                     <Input
                       type="search"
-                      placeholder="Search tasks..."
-                      className="pl-9 h-10"
+                      placeholder="Search tasks, priority, dates, names..."
+                      className="pl-9 h-10 rounded-full border-gray-300"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   
-                  {/* Priority Filter */}
-                  <Select value={desktopPriorityFilter} onValueChange={(value) => setDesktopPriorityFilter(value as Priority | 'all')}>
-                    <SelectTrigger className="w-32 h-10">
-                      <SelectValue placeholder="Priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Priority</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Due Date Filter */}
-                  <Select value={desktopDueDateFilter} onValueChange={(value) => setDesktopDueDateFilter(value)}>
-                    <SelectTrigger className="w-36 h-10">
-                      <SelectValue placeholder="Due Date" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Dates</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">Next 7 Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Clear Filters */}
-                  {(searchQuery || desktopPriorityFilter !== 'all' || desktopDueDateFilter !== 'all') && (
+                  {/* Clear Search */}
+                  {searchQuery && (
                     <button
-                      onClick={() => {
-                        setSearchQuery('');
-                        setDesktopPriorityFilter('all');
-                        setDesktopDueDateFilter('all');
-                      }}
-                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"
+                      onClick={() => setSearchQuery('')}
+                      className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-1 h-10"
                     >
                       <X className="size-4" />
                       Clear

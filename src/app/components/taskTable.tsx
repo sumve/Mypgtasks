@@ -14,9 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
-import { MoreHorizontal, Play, CheckCircle2, Circle } from 'lucide-react';
+import { MoreHorizontal, Play, CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
 import type { Task, User, UserRole } from '@/app/data/mock-data';
+import { useState } from 'react';
 
 interface TaskTableProps {
   tasks: Task[];
@@ -26,6 +27,7 @@ interface TaskTableProps {
 }
 
 const priorityColors = {
+  Critical: 'bg-purple-100 text-purple-900 border-purple-300',
   High: 'bg-red-100 text-red-800 border-red-200',
   Medium: 'bg-amber-100 text-amber-800 border-amber-200',
   Low: 'bg-green-100 text-green-800 border-green-200',
@@ -49,6 +51,8 @@ export function TaskTable({
   currentUserRole,
   onStatusChange,
 }: TaskTableProps) {
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  
   const getUserName = (userId: string) => {
     return users.find((u) => u.id === userId)?.name || 'Unknown';
   };
@@ -88,18 +92,27 @@ export function TaskTable({
               </TableCell>
             </TableRow>
           ) : (
-            sortedTasks.map((task) => {
+            sortedTasks.flatMap((task) => {
               const isCompleted = task.status === 'Completed';
               const isInProgress = task.status === 'In Progress';
               const StatusIcon = statusIcons[task.status];
+              const isExpanded = expandedTaskId === task.id;
               
-              return (
+              const rows = [
                 <TableRow key={task.id} className={cn(isCompleted && "bg-neutral-50/50")}>
                   <TableCell className="font-medium">
                     <div>
-                      <div>
-                        {task.title}
-                      </div>
+                      <button 
+                        className="text-left hover:text-blue-600 transition-colors flex items-center gap-2 w-full group"
+                        onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                      >
+                        <span>{task.title}</span>
+                        {isExpanded ? (
+                          <ChevronUp className="size-4 text-gray-400 group-hover:text-blue-600" />
+                        ) : (
+                          <ChevronDown className="size-4 text-gray-400 group-hover:text-blue-600" />
+                        )}
+                      </button>
                       {task.propertyId && (
                         <div className="text-xs text-muted-foreground mt-1">
                           {task.propertyId}
@@ -148,7 +161,35 @@ export function TaskTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              );
+              ];
+              
+              // Add expanded row if task is expanded
+              if (isExpanded) {
+                rows.push(
+                  <TableRow key={`${task.id}-expanded`} className={cn(isCompleted && "bg-neutral-50/50", "border-t-0")}>
+                    <TableCell colSpan={6} className="bg-blue-50/30 py-4">
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="font-semibold text-sm text-gray-700 min-w-[100px]">Description:</span>
+                          <p className="text-sm text-gray-600">{task.description}</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-semibold text-sm text-gray-700 min-w-[100px]">Created:</span>
+                          <p className="text-sm text-gray-600">
+                            {new Date(task.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+              
+              return rows;
             })
           )}
         </TableBody>

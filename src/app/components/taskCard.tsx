@@ -4,6 +4,8 @@ import {
   Play,
   CheckCircle2,
   Circle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 import {
@@ -35,6 +37,7 @@ interface TaskCardProps {
 }
 
 const priorityColors = {
+  Critical: "bg-purple-100 text-purple-900 border-purple-300",
   High: "bg-red-100 text-red-800 border-red-200",
   Medium: "bg-amber-100 text-amber-800 border-amber-200",
   Low: "bg-green-100 text-green-800 border-green-200",
@@ -63,7 +66,11 @@ export function TaskCard({
   const assignedUser = users.find(
     (u) => u.id === task.assignedTo,
   );
+  const createdByUser = users.find(
+    (u) => u.id === task.createdBy,
+  );
   const dueDate = new Date(task.dueDate);
+  const createdDate = new Date(task.createdAt);
   const isOverdue =
     dueDate < new Date() && task.status !== "Completed";
   const isCompleted = task.status === "Completed";
@@ -73,6 +80,7 @@ export function TaskCard({
     Task["status"]
   >(task.status);
   const [isChecked, setIsChecked] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Sync selected status with task status
   useEffect(() => {
@@ -103,9 +111,19 @@ export function TaskCard({
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2 md:mb-3">
-        <h3 className="font-medium text-sm flex-1 line-clamp-2">
-          {task.title}
-        </h3>
+        <button
+          className="flex items-center gap-2 text-left flex-1 hover:text-blue-600 transition-colors group"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <h3 className="font-medium text-sm flex-1 line-clamp-2">
+            {task.title}
+          </h3>
+          {isExpanded ? (
+            <ChevronUp className="size-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
+          ) : (
+            <ChevronDown className="size-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
+          )}
+        </button>
       </div>
 
       {task.propertyId && (
@@ -163,6 +181,30 @@ export function TaskCard({
           </span>
         </Badge>
       </div>
+
+      {/* Expanded Details Section */}
+      {isExpanded && (
+        <div className="mb-3 p-3 bg-blue-50/30 rounded-lg space-y-2 border border-blue-100">
+          <div className="flex items-start gap-2">
+            <span className="font-semibold text-xs text-gray-700 min-w-[80px]">Description:</span>
+            <p className="text-xs text-gray-600">{task.description}</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="font-semibold text-xs text-gray-700 min-w-[80px]">Requested by:</span>
+            <p className="text-xs text-gray-600">{createdByUser?.name || "Unknown"}</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="font-semibold text-xs text-gray-700 min-w-[80px]">Created:</span>
+            <p className="text-xs text-gray-600">
+              {createdDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Status Selection with Checkbox */}
       <div className="pt-2 border-t">

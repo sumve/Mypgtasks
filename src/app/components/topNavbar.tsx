@@ -15,9 +15,9 @@ export function TopNavbar({ currentUser, searchQuery, onSearchChange, onProfileC
   return (
     <div className="sticky top-0 z-50 w-full border-b" style={{ backgroundColor: '#001433' }}>
       <div className="flex h-14 md:h-[72px] items-center gap-2 md:gap-4 px-3 md:px-6">
-        <div className="flex items-center gap-2">
+        <a href="https://www.rufrent.com/" className="flex items-center gap-2 hover:opacity-80 transition-opacity" target="_blank" rel="noopener noreferrer">
           <img src={logo} alt="Rufrent" className="h-6 md:h-8" />
-        </div>
+        </a>
 
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           {/* Search - only visible on mobile/tablet, hidden on desktop (lg+) */}
