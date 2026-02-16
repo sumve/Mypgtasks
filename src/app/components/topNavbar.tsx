@@ -2,7 +2,7 @@ import { Search } from 'lucide-react';
 import { Input } from '@/app/components/ui/input';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 import type { User } from '@/app/data/mock-data';
-import logo from 'figma:asset/33ec04c21ea655fdb9574bd0a62d6cd455f16db6.png';
+import logo from '@/assets/logo.png';
 
 interface TopNavbarProps {
   currentUser: User;
